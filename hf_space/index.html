@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TradBot - a Traditional Chatbot</title>
+<style>
+  :root { --blue:#2563eb; --line:#e3e5ea; --muted:#667085; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background:#f4f5f7; color:#111; }
+  .wrap { max-width:780px; margin:24px auto; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  header { padding:16px 20px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:19px; margin:0; }
+  header p { margin:6px 0 0; color:var(--muted); font-size:13.5px; line-height:1.45; }
+  #log { height:460px; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .m { max-width:80%; padding:9px 13px; border-radius:12px; white-space:pre-wrap; font-size:14.5px; line-height:1.42; }
+  .u { align-self:flex-end; background:var(--blue); color:#fff; }
+  .b { align-self:flex-start; background:#eef0f4; }
+  .meta { font-size:11px; color:#889; margin-top:4px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; padding:10px 16px; border-top:1px solid var(--line); }
+  .chips button { border:1px solid var(--line); background:#fff; border-radius:999px; padding:5px 11px; font-size:12.5px; cursor:pointer; }
+  .chips button:hover { border-color:var(--blue); color:var(--blue); }
+  form { display:flex; border-top:1px solid var(--line); }
+  input { flex:1; border:0; padding:14px 16px; font-size:15px; outline:none; }
+  form button { border:0; background:var(--blue); color:#fff; padding:0 24px; font-size:15px; cursor:pointer; }
+  label { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>TradBot &middot; a traditional (non-LLM) chatbot</h1>
+    <p>Messages are validated, matched against hand-written regex rules, then compared with example phrases
+       using TF-IDF cosine similarity. Unsure matches get a clarifying question; unknown input gets a fallback.
+       Type <b>help</b> to list capabilities. Runs entirely in your browser.</p>
+    <label><input type="checkbox" id="dbg" checked style="flex:none"> show matched intent, confidence and method</label>
+  </header>
+  <div id="log" aria-live="polite"></div>
+  <div class="chips" id="chips"></div>
+  <form id="f"><input id="i" autocomplete="off" placeholder="Type a message..." aria-label="Message"><button>Send</button></form>
+</div>
+<script src="intents.js"></script>
+<script src="bot.js"></script>
+<script>
+  const bot = new TradBot.ChatBot(window.TRADBOT_INTENTS);
+  const session = {};
+  const log = document.getElementById("log"), dbg = document.getElementById("dbg");
+  function add(cls, text, meta) {
+    const d = document.createElement("div");
+    d.className = "m " + cls; d.textContent = text;
+    if (meta) { const s = document.createElement("div"); s.className = "meta"; s.textContent = meta; d.appendChild(s); }
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+  function send(text) {
+    add("u", text === "" ? " " : text);
+    const r = bot.respond(text, session);
+    add("b", r.text, dbg.checked ? `intent: ${r.intent ?? "none"} | confidence: ${r.confidence.toFixed(2)} | ${r.source}` : "");
+  }
+  window.sendMessage = send;
+  document.getElementById("f").onsubmit = (e) => { e.preventDefault(); const i = document.getElementById("i"); send(i.value); i.value = ""; i.focus(); };
+  for (const ex of ["help", "my name is Sam", "what time is it", "calculate (3 + 4) * 2", "tell me a joke", "chatbot lifecycle", "asdfgh qwrtzp"]) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = ex; b.onclick = () => send(ex);
+    document.getElementById("chips").appendChild(b);
+  }
+  add("b", "Hi! I'm TradBot. Type 'help' to see what I can do.");
+</script>
+</body>
+</html>
